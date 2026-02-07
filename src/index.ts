@@ -1,9 +1,3 @@
-const { program } = require("commander");
-
-program.option("--first").option("-s, --separator <char>").argument("<string>");
-
-program.parse();
-
-const options = program.opts();
-const limit = options.first ? 1 : undefined;
-console.log(program.args[0].split(options.separator, limit));
+// Entry point for the Dusk CLI
+// All logic is now in cli.ts for direct mode and tui.ts for TUI mode
+export {};
