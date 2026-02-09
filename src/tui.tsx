@@ -19,6 +19,22 @@ export async function startTUI() {
   });
 
   globalRenderer = renderer;
+  
+  // Handle cleanup on process signals
+  const cleanup = () => {
+    if (renderer) {
+      try {
+        renderer.dispose?.();
+      } catch (e) {
+        // ignore
+      }
+    }
+    process.exit(0);
+  };
+  
+  globalCleanup = cleanup;
+  process.on("SIGINT", cleanup);
+  
   const root = createRoot(renderer);
   renderer.keyInput.on("keypress", (key) => {
     if (key.name === "`") {
@@ -36,15 +52,31 @@ export async function exitTUI() {
   }
 }
 
+interface ThreadMessage {
+  id: string;
+  role: "user" | "assistant";
+  content: string;
+  timestamp: string;
+}
+
+interface Thread {
+  id: string;
+  title: string;
+  model: string;
+  createdAt: string;
+  messages: ThreadMessage[];
+}
+
 function DuskApp() {
   const [screen, setScreen] = useState<
-    "main" | "run" | "history" | "compare" | "explain"
+    "main" | "run" | "history" | "compare" | "explain" | "thread"
   >("main");
   const [prompt, setPrompt] = useState("");
   const [model, setModel] = useState("gpt-5");
   const [status, setStatus] = useState("");
   const [inputFocused, setInputFocused] = useState(screen === "main");
   const [logs, setLogs] = useState<string[]>([]);
+  const [currentThread, setCurrentThread] = useState<Thread | null>(null);
 
   useKeyboard((key) => {
     if (key.name === "escape") {
@@ -80,7 +112,26 @@ function DuskApp() {
   }, [prompt, model, addLog]);
 
   if (screen === "main") {
-    return <MainMenu setScreen={setScreen} setInputFocused={setInputFocused} addLog={addLog} />;
+    return (
+      <MainMenu
+        setScreen={setScreen}
+        setInputFocused={setInputFocused}
+        addLog={addLog}
+        setCurrentThread={setCurrentThread}
+      />
+    );
+  }
+
+  if (screen === "thread" && currentThread) {
+    return (
+      <ChatThread
+        thread={currentThread}
+        setThread={setCurrentThread}
+        setScreen={setScreen}
+        setInputFocused={setInputFocused}
+        addLog={addLog}
+      />
+    );
   }
 
   if (screen === "run") {
@@ -117,13 +168,23 @@ function MainMenu({
   setScreen,
   setInputFocused,
   addLog,
+  setCurrentThread,
 }: {
   setScreen: any;
   setInputFocused: any;
   addLog: any;
+  setCurrentThread: any;
 }) {
   const [commands, setCommands] = useState<
-    { id: string; name?: string; description?: string; prompt?: string; model?: string; status?: string; timestamp?: string }[]
+    {
+      id: string;
+      name?: string;
+      description?: string;
+      prompt?: string;
+      model?: string;
+      status?: string;
+      timestamp?: string;
+    }[]
   >([
     {
       id: "command1",
@@ -146,10 +207,53 @@ function MainMenu({
   const handleSendPrompt = useCallback(() => {
     if (!inputValue.trim()) return;
 
-    addLog(`[APP] Running prompt: "${inputValue}"`);
+    addLog(`[APP] Creating thread with prompt: "${inputValue}"`);
+
+    const threadId = `thread-${Date.now()}`;
+    const timestamp = new Date().toISOString();
+
+    const newThread: Thread = {
+      id: threadId,
+      title: inputValue.substring(0, 50),
+      model: "gpt-5.2",
+      createdAt: timestamp,
+      messages: [
+        {
+          id: `msg-${Date.now()}`,
+          role: "user",
+          content: inputValue,
+          timestamp,
+        },
+      ],
+    };
+
+    setCurrentThread(newThread);
+
+    // Simulate server response
+    setTimeout(() => {
+      const response =
+        "This is a mock response from the AI model. In the real implementation, this would come from the server API.";
+      addLog(`[API] Response received for thread ${threadId}`);
+
+      setCurrentThread((prev: Thread | null) => {
+        if (!prev) return null;
+        return {
+          ...prev,
+          messages: [
+            ...prev.messages,
+            {
+              id: `msg-${Date.now()}`,
+              role: "assistant",
+              content: response,
+              timestamp: new Date().toISOString(),
+            },
+          ],
+        };
+      });
+    }, 1500);
 
     const newRun = {
-      id: `run-${commands.length + 1}`,
+      id: threadId,
       prompt: inputValue,
       model: "gpt-5.2",
       status: "pending",
@@ -160,19 +264,9 @@ function MainMenu({
     };
 
     setCommands((prev) => [newRun, ...prev]);
-
-    // Simulate run completion
-    setTimeout(() => {
-      addLog(`[APP] Run ${newRun.id} completed successfully`);
-      setCommands((prev) =>
-        prev.map((run) =>
-          run.id === newRun.id ? { ...run, status: "success" } : run,
-        ),
-      );
-    }, 2000);
-
     setInputValue("");
-  }, [inputValue, commands.length, addLog]);
+    setScreen("thread");
+  }, [inputValue, commands.length, addLog, setScreen]);
 
   useKeyboard((key) => {
     if (key.name === "return" && inputValue.trim()) {
@@ -226,7 +320,9 @@ function MainMenu({
                 {command.prompt ? `📌 ${command.prompt}` : command.name}
               </text>
               <text fg="#FFFFFF" attributes={TextAttributes.DIM}>
-                {command.model ? `Model: ${command.model} | Status: ${command.status}` : command.description}
+                {command.model
+                  ? `Model: ${command.model} | Status: ${command.status}`
+                  : command.description}
               </text>
             </box>
           ))
@@ -252,9 +348,15 @@ function MainMenu({
       </box>
 
       {/* Help Text */}
-      <text fg="#666666">
-        Enter: Run | Q: Quit | Commands: /history /branch /compare /explain
-      </text>
+      <box
+        style={{
+          flexDirection: "row",
+        }}
+      >
+        <text fg="#666666">
+          Enter: Run | Q: Quit | Commands: /history /branch /compare /explain
+        </text>
+      </box>
     </box>
   );
 }
@@ -403,6 +505,167 @@ function ExplainScreen({ setScreen, addLog }: { setScreen: any; addLog: any }) {
       <text fg="#666666" style={{ marginTop: 2 }}>
         Esc: Back | Q: Quit
       </text>
+    </box>
+  );
+}
+
+function ChatThread({
+  thread,
+  setThread,
+  setScreen,
+  setInputFocused,
+  addLog,
+}: {
+  thread: Thread;
+  setThread: any;
+  setScreen: any;
+  setInputFocused: any;
+  addLog: any;
+}) {
+  const [inputValue, setInputValue] = useState("");
+
+  const handleSendMessage = useCallback(() => {
+    if (!inputValue.trim()) return;
+
+    addLog(`[APP] Sending message to thread ${thread.id}: "${inputValue}"`);
+
+    // Add user message
+    const userMessage: ThreadMessage = {
+      id: `msg-${Date.now()}`,
+      role: "user",
+      content: inputValue,
+      timestamp: new Date().toISOString(),
+    };
+
+    setThread((prev: Thread) => ({
+      ...prev,
+      messages: [...prev.messages, userMessage],
+    }));
+
+    // Simulate server response
+    setTimeout(() => {
+      const response =
+        "This is another mock response from the AI model. The conversation continues...";
+      addLog(`[API] Response received for thread ${thread.id}`);
+
+      setThread((prev: Thread) => ({
+        ...prev,
+        messages: [
+          ...prev.messages,
+          {
+            id: `msg-${Date.now()}`,
+            role: "assistant",
+            content: response,
+            timestamp: new Date().toISOString(),
+          },
+        ],
+      }));
+    }, 1500);
+
+    setInputValue("");
+  }, [inputValue, thread.id, addLog, setThread]);
+
+  useKeyboard((key) => {
+    if (key.name === "return" && inputValue.trim()) {
+      handleSendMessage();
+    }
+    if (key.name === "escape") {
+      setScreen("main");
+    }
+    if (key.name === "q" && !inputValue) {
+      process.exit(0);
+    }
+  });
+
+  return (
+    <box
+      style={{
+        border: true,
+        padding: 1,
+        flexDirection: "column",
+        gap: 1,
+        width: "100%",
+        height: "100%",
+      }}
+    >
+      {/* Header */}
+      <box style={{ flexDirection: "row", gap: 2, paddingBottom: 1 }}>
+        <text attributes={TextAttributes.BOLD} fg="#FFFF00">
+          {thread.title}
+        </text>
+        <text fg="#888888">ID: {thread.id}</text>
+        <text fg="#888888">Model: {thread.model}</text>
+      </box>
+
+      {/* Messages */}
+      <box
+        style={{
+          flexDirection: "column",
+          gap: 1,
+          flex: 1,
+          overflow: "auto",
+          paddingBottom: 1,
+          borderBottom: true,
+        }}
+      >
+        {thread.messages.length === 0 ? (
+          <text fg="#666666">No messages yet</text>
+        ) : (
+          thread.messages.map((msg) => (
+            <box
+              key={msg.id}
+              style={{
+                flexDirection: "column",
+                gap: 0,
+                paddingLeft: 1,
+                paddingRight: 1,
+              }}
+            >
+              <text
+                fg={msg.role === "user" ? "#00FF00" : "#00AAFF"}
+                attributes={TextAttributes.BOLD}
+              >
+                {msg.role === "user" ? "You:" : "AI:"}
+              </text>
+              <text fg="#FFFFFF">{msg.content}</text>
+            </box>
+          ))
+        )}
+      </box>
+
+      {/* Input Box with Info */}
+      <box
+        title="Message"
+        style={{
+          border: true,
+          height: 6,
+          width: "100%",
+          flexDirection: "column",
+          padding: 1,
+          gap: 1,
+        }}
+      >
+        <input
+          placeholder="Type your message..."
+          value={inputValue}
+          onChange={(value: string) => setInputValue(value)}
+          onFocus={() => setInputFocused(true)}
+          onBlur={() => setInputFocused(false)}
+        />
+
+        <box
+          style={{
+            flexDirection: "row",
+            gap: 2,
+          }}
+        >
+          <text fg="#888888">Model: {thread.model}</text>
+          <text fg="#888888">Dir: {process.cwd()}</text>
+        </box>
+      </box>
+
+      {/* Help Text */}
+      <text fg="#666666">Enter: Send | Esc: Back to Main | Q: Quit</text>
     </box>
   );
 }
