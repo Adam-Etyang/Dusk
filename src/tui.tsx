@@ -82,8 +82,8 @@ function DuskApp() {
     if (key.name === "escape") {
       setScreen("main");
     }
-    if (key.name === "q" && !inputFocused) {
-      exitTUI().catch(() => process.exit(0));
+    if (key.name === "q") {
+      process.exit(0);
     }
   });
 
@@ -571,9 +571,6 @@ function ChatThread({
     }
     if (key.name === "escape") {
       setScreen("main");
-    }
-    if (key.name === "q" && !inputValue) {
-      process.exit(0);
     }
   });
 
