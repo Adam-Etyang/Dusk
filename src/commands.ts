@@ -67,7 +67,14 @@ async function handleRun(options: CommandOptions): Promise<void> {
   console.log(`   Model: ${model}`);
   if (key) console.log(`   Using custom API key`);
 
-  // TODO: Implement actual API call
+  // Mock API request
+  console.log("[API] POST /api/run - Mock API request initiated");
+  console.log(`[API] Payload: { prompt: "${prompt}", model: "${model}" }`);
+  
+  // Simulate API delay
+  await new Promise(resolve => setTimeout(resolve, 500));
+  
+  console.log("[API] Response: Success (200)");
   console.log("✅ Prompt executed successfully");
   console.log("   Run ID: run-12345");
   console.log("   Use 'dusk show run-12345' to view details");
@@ -78,6 +85,13 @@ async function handleHistory(options: CommandOptions): Promise<void> {
 
   console.log(`📜 Fetching last ${limit} prompts...`);
   if (filter) console.log(`   Filtered by: ${filter}`);
+
+  // Mock API request
+  console.log("[API] GET /api/history - Mock API request initiated");
+  console.log(`[API] Query params: { limit: ${limit}${filter ? `, filter: "${filter}"` : ""} }`);
+  
+  // Simulate API delay
+  await new Promise(resolve => setTimeout(resolve, 300));
 
   // TODO: Implement history retrieval
   const mockHistory = [
@@ -97,6 +111,7 @@ async function handleHistory(options: CommandOptions): Promise<void> {
     },
   ];
 
+  console.log("[API] Response: Success (200)");
   console.log("\n📌 Recent runs:");
   mockHistory.slice(0, parseInt(limit)).forEach((run) => {
     console.log(`   ${run.id}: "${run.prompt}"`);
@@ -108,6 +123,15 @@ async function handleRuns(options: CommandOptions): Promise<void> {
   const { tree, json, format } = options;
 
   console.log("🌳 Displaying runs as DAG...");
+
+  // Mock API request
+  console.log("[API] GET /api/runs - Mock API request initiated");
+  console.log(`[API] Query params: { format: "${format || 'timeline'}", tree: ${!!tree}, json: ${!!json} }`);
+  
+  // Simulate API delay
+  await new Promise(resolve => setTimeout(resolve, 400));
+
+  console.log("[API] Response: Success (200)");
 
   if (json) {
     console.log(
@@ -154,7 +178,14 @@ async function handleRetry(options: CommandOptions): Promise<void> {
   }
   if (prompt) console.log(`   Using custom prompt`);
 
-  // TODO: Implement retry logic
+  // Mock API request
+  console.log("[API] POST /api/retry - Mock API request initiated");
+  console.log(`[API] Payload: { runId: "${runId}", model: "${model || 'same'}", customPrompt: ${!!prompt} }`);
+  
+  // Simulate API delay
+  await new Promise(resolve => setTimeout(resolve, 500));
+
+  console.log("[API] Response: Success (200)");
   console.log("✅ Run retried successfully");
   console.log("   New Run ID: run-12346");
   console.log("   Created branch from run " + runId);
@@ -173,7 +204,14 @@ async function handleBranch(options: CommandOptions): Promise<void> {
   console.log(`🌿 Creating branch from run ${runId}...`);
   console.log(`   Branch name: ${branchName}`);
 
-  // TODO: Implement branching
+  // Mock API request
+  console.log("[API] POST /api/branch - Mock API request initiated");
+  console.log(`[API] Payload: { runId: "${runId}", branchName: "${branchName}" }`);
+  
+  // Simulate API delay
+  await new Promise(resolve => setTimeout(resolve, 300));
+
+  console.log("[API] Response: Success (200)");
   console.log("✅ Branch created successfully");
 }
 
@@ -189,7 +227,14 @@ async function handleCompare(options: CommandOptions): Promise<void> {
   console.log(`   Format: ${format}`);
   if (diff) console.log("   Showing line-by-line differences");
 
-  // TODO: Implement comparison logic
+  // Mock API request
+  console.log("[API] POST /api/compare - Mock API request initiated");
+  console.log(`[API] Payload: { run1: "${run1}", run2: "${run2}", format: "${format}", diff: ${!!diff} }`);
+  
+  // Simulate API delay
+  await new Promise(resolve => setTimeout(resolve, 600));
+
+  console.log("[API] Response: Success (200)");
   console.log("\n--- Run 1 Output ---");
   console.log("Sample output from run 1");
   console.log("\n--- Run 2 Output ---");
@@ -208,7 +253,15 @@ async function handleExplain(options: CommandOptions): Promise<void> {
   if (verbose) console.log("   Verbose mode enabled");
   if (trace) console.log("   Showing execution trace");
 
-  // TODO: Implement explainability features
+  // Mock API request
+  console.log("[API] GET /api/explain/:runId - Mock API request initiated");
+  console.log(`[API] Path params: { runId: "${runId}" }`);
+  console.log(`[API] Query params: { verbose: ${!!verbose}, trace: ${!!trace} }`);
+  
+  // Simulate API delay
+  await new Promise(resolve => setTimeout(resolve, 700));
+
+  console.log("[API] Response: Success (200)");
   console.log("\n📊 Run Analysis:");
   console.log("   Model: gpt-4");
   console.log("   Duration: 2.3s");
@@ -222,6 +275,15 @@ async function handleModels(options: CommandOptions): Promise<void> {
   const { local, remote } = options;
 
   console.log("🤖 Available Models:\n");
+
+  // Mock API request
+  console.log("[API] GET /api/models - Mock API request initiated");
+  console.log(`[API] Query params: { local: ${!!local}, remote: ${!!remote} }`);
+  
+  // Simulate API delay
+  await new Promise(resolve => setTimeout(resolve, 250));
+
+  console.log("[API] Response: Success (200)");
 
   if (!local) {
     console.log("Remote Models:");
@@ -250,7 +312,15 @@ async function handleShow(options: CommandOptions): Promise<void> {
 
   console.log(`📋 Run Details: ${runId}\n`);
 
-  // TODO: Load run details
+  // Mock API request
+  console.log("[API] GET /api/runs/:runId - Mock API request initiated");
+  console.log(`[API] Path params: { runId: "${runId}" }`);
+  console.log(`[API] Query params: { full: ${!!full} }`);
+  
+  // Simulate API delay
+  await new Promise(resolve => setTimeout(resolve, 350));
+
+  console.log("[API] Response: Success (200)");
   console.log("Metadata:");
   console.log("   Model: gpt-4");
   console.log("   Status: success");
@@ -282,6 +352,15 @@ async function handleDelete(options: CommandOptions): Promise<void> {
   if (!force) {
     console.log("⚠️  Use --force to skip confirmation");
   } else {
+    // Mock API request
+    console.log("[API] DELETE /api/runs/:runId - Mock API request initiated");
+    console.log(`[API] Path params: { runId: "${runId}" }`);
+    console.log(`[API] Query params: { branch: ${!!branch} }`);
+    
+    // Simulate API delay
+    await new Promise(resolve => setTimeout(resolve, 300));
+
+    console.log("[API] Response: Success (200)");
     console.log("✅ Deleted successfully");
   }
 }
