@@ -5,10 +5,12 @@ export default function Chat() {
         flexDirection: "column", 
         alignItems: "center"
       }}>
-      <text>
-        This is sometxt
-        
-      </text>
+      <box>
+        <text>
+          This is sometxt
+          
+        </text>
+      </box>
     </box>
   )
 }

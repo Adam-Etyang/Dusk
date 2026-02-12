@@ -1,4 +1,7 @@
 export default function DiffScreen() { 
-  return
-  
+  return (
+    <box>
+      <text>Diff Screen</text>
+    </box>
+  )
 }

@@ -1,3 +1,6 @@
+import { useKeyboard } from "@opentui/react";
+import { useState } from "react";
+
 interface RunPromptScreenProps {
   prompt: string;
   setPrompt: (prompt: string) => void;
@@ -19,13 +22,24 @@ export default function RunPromptScreen({
   setScreen,
   addLog,
 }: RunPromptScreenProps) {
+  const [focused, setFocused] = useState<"prompt" | "model">("prompt");
+
+  useKeyboard((key) => {
+    if (key.name === "tab") {
+      setFocused((prev) => (prev === "prompt" ? "model" : "prompt"));
+    }
+    if (key.name === "return") {
+      onSubmit();
+    }
+  });
+
   return (
     <box
       style={{
         border: true,
-        padding: 1,
+        padding: 2,
         flexDirection: "column",
-        gap: 1,
+        gap: 2,
         width: "100%",
         height: "100%",
       }}
@@ -34,25 +48,44 @@ export default function RunPromptScreen({
         <text fg="#FFFF00">Run Prompt</text>
       </box>
 
-      <box
-        title="Prompt"
-        style={{
-          border: true,
-          padding: 1,
-          height: 6,
-          width: "100%",
-          flexDirection: "column",
-        }}
-      >
+      <box title="Prompt" style={{ border: true, width: "100%", height: 5 }}>
         <input
           placeholder="Enter your prompt..."
           value={prompt}
           onChange={(value: string) => setPrompt(value)}
+          focused={focused === "prompt"}
+        />
+      </box>
+
+      <box title="Model" style={{ border: true, width: 40, height: 3 }}>
+        <input
+          placeholder="gpt-4, gpt-3.5-turbo, etc."
+          value={model}
+          onChange={(value: string) => setModel(value)}
+          focused={focused === "model"}
         />
       </box>
 
       <box>
-        <text fg="#666666">Esc: Back | Q: Quit</text>
+        <text
+          fg={
+            status.includes("error")
+              ? "red"
+              : status.includes("Executing")
+                ? "yellow"
+                : status.includes("executed")
+                  ? "green"
+                  : "#999"
+          }
+        >
+          {status || "Ready"}
+        </text>
+      </box>
+
+      <box>
+        <text fg="#666666">
+          Tab: Switch fields | Enter: Run | Esc: Back | Q: Quit
+        </text>
       </box>
     </box>
   );
