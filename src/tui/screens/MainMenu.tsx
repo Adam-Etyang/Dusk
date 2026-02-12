@@ -29,7 +29,11 @@ export default function MainMenu({
     if (value.startsWith("/")) {
       console.log("[MainMenu] Input starts with '/', opening modal");
       setIsModalOpen(true);
-    }}, []);
+    } else {
+      console.log("[MainMenu] Input does not start with '/', closing modal");
+      setIsModalOpen(false);
+    }
+  }, []);
 
   const handleSelectCommand = useCallback(
     (commandKey: string) => {
@@ -183,7 +187,10 @@ export default function MainMenu({
         <input
           placeholder="Enter your prompt or /help... (Enter to send)"
           value={inputValue}
-          onChange={handleInputChange}
+          onChange={(value: string) => {
+            console.log("[MainMenu] onChange triggered with value:", JSON.stringify(value));
+            handleInputChange(value);
+          }}
           onFocus={() => setInputFocused(true)}
           onBlur={() => setInputFocused(false)}
         />
@@ -195,6 +202,7 @@ export default function MainMenu({
         </text>
       </box>
 
+      {console.log("[MainMenu] Rendering CommandModal with isOpen:", isModalOpen)}
       <CommandModal
         isOpen={isModalOpen}
         onSelectCommand={handleSelectCommand}

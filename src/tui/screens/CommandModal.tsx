@@ -63,7 +63,7 @@ export default function CommandModal({
 }: CommandModalProps) {
   const [selectedIndex, setSelectedIndex] = useState(0);
 
-  console.log("[CommandModal] isOpen:", isOpen);
+  console.log("[CommandModal] Render - isOpen:", isOpen, "selectedIndex:", selectedIndex);
 
   useKeyboard((key) => {
     console.log("[CommandModal] Key pressed:", key.name, "isOpen:", isOpen);
