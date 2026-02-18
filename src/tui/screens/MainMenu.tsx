@@ -189,7 +189,9 @@ export default function MainMenu({ setScreen, addLog }: MainMenuProps) {
           }}
         />
       </box>
-
+      <box marginLeft={5}>
+        <text>Ctrl+C to exit</text>
+      </box>
 
       {isCommandMenuOpen && (
         <box

@@ -71,9 +71,6 @@ function DuskApp() {
     if (key.name === "escape") {
       setScreen("main");
     }
-    if (key.name === "q") {
-      process.exit(0);
-    }
   });
 
   // Intercept console.log to capture logs
