@@ -64,7 +64,6 @@ function DuskApp() {
   const [prompt, setPrompt] = useState("");
   const [model, setModel] = useState("gpt-5");
   const [status, setStatus] = useState("");
-  const [inputFocused, setInputFocused] = useState(screen === "main");
   const [logs, setLogs] = useState<string[]>([]);
   const [currentThread, setCurrentThread] = useState<Thread | null>(null);
 
@@ -105,23 +104,20 @@ function DuskApp() {
     return (
       <MainMenu
         setScreen={setScreen}
-        setInputFocused={setInputFocused}
         addLog={addLog}
-        setCurrentThread={setCurrentThread}
       />
     );
   }
 
   if (screen === "thread" && currentThread) {
-    return (
-      <ChatThread
-        thread={currentThread}
-        setThread={setCurrentThread}
-        setScreen={setScreen}
-        setInputFocused={setInputFocused}
-        addLog={addLog}
-      />
-    );
+   return (
+     <ChatThread
+       thread={currentThread}
+       setThread={setCurrentThread}
+       setScreen={setScreen}
+       addLog={addLog}
+     />
+   );
   }
 
   if (screen === "run") {
@@ -135,6 +131,7 @@ function DuskApp() {
         status={status}
         setScreen={setScreen}
         addLog={addLog}
+        setInputFocused={() => {}}
       />
     );
   }

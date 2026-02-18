@@ -1,138 +1,153 @@
-
 import { useCallback, useState } from "react";
 import { useKeyboard } from "@opentui/react";
-import type { Thread } from "../../core/types";
-import CommandModal from "./CommandModal";
+
+interface Command {
+  key: string;
+  name: string;
+  description: string;
+}
 
 interface MainMenuProps {
   setScreen: (screen: string) => void;
-  setInputFocused: (focused: boolean) => void;
   addLog: (message: string) => void;
-  setCurrentThread: (thread: Thread | null) => void;
 }
 
-export default function MainMenu({
-  setScreen,
-  setInputFocused,
-  addLog,
-  setCurrentThread,
-}: MainMenuProps) {
+const AVAILABLE_COMMANDS: Command[] = [
+  {
+    key: "run",
+    name: "/run",
+    description: "Run a new prompt",
+  },
+  {
+    key: "history",
+    name: "/history",
+    description: "View your prompt history",
+  },
+  {
+    key: "compare",
+    name: "/compare",
+    description: "Compare two runs side by side",
+  },
+  {
+    key: "explain",
+    name: "/explain",
+    description: "Explain the output of a run",
+  },
+];
+
+export default function MainMenu({ setScreen, addLog }: MainMenuProps) {
   const [inputValue, setInputValue] = useState("");
-  const [isModalOpen, setIsModalOpen] = useState(false);
-
-  console.log("[MainMenu] Rendering - inputValue:", inputValue, "isModalOpen:", isModalOpen);
-
-  const handleInputChange = useCallback((value: string) => {
-    console.log("[MainMenu] Input changed:", value);
-    setInputValue(value);
-    // Show modal when "/" is typed
-    if (value.startsWith("/")) {
-      console.log("[MainMenu] Input starts with '/', opening modal");
-      setIsModalOpen(true);
-    } else {
-      console.log("[MainMenu] Input does not start with '/', closing modal");
-      setIsModalOpen(false);
-    }
-  }, []);
+  const [isCommandMenuOpen, setIsCommandMenuOpen] = useState(false);
+  const [selectedCommandIndex, setSelectedCommandIndex] = useState(0);
 
   const handleSelectCommand = useCallback(
     (commandKey: string) => {
-      console.log("[MainMenu] Command selected:", commandKey);
       addLog(`[APP] Command selected: /${commandKey}`);
-      setIsModalOpen(false);
+      setIsCommandMenuOpen(false);
+      setInputValue("");
 
       switch (commandKey) {
         case "run":
-          console.log("[MainMenu] Executing: run");
           setScreen("run");
-          setInputValue("");
           break;
         case "history":
-          console.log("[MainMenu] Executing: history");
           setScreen("history");
-          setInputValue("");
           break;
         case "compare":
-          console.log("[MainMenu] Executing: compare");
           setScreen("compare");
-          setInputValue("");
           break;
         case "explain":
-          console.log("[MainMenu] Executing: explain");
           setScreen("explain");
-          setInputValue("");
-          break;
-        case "models":
-          console.log("[MainMenu] Executing: models");
-          addLog("[APP] Available models: gpt-4, gpt-3.5-turbo, claude-3, etc.");
-          setInputValue("");
-          break;
-        case "help":
-          console.log("[MainMenu] Executing: help");
-          addLog("[APP] Commands: /run, /history, /compare, /explain, /models, /clear, /exit");
-          setInputValue("");
-          break;
-        case "clear":
-          console.log("[MainMenu] Executing: clear");
-          setInputValue("");
-          addLog("[APP] Conversation cleared");
-          break;
-        case "exit":
-          console.log("[MainMenu] Executing: exit");
-          process.exit(0);
           break;
         default:
-          console.log("[MainMenu] Unknown command:", commandKey);
-          setInputValue("");
+          break;
       }
     },
-    [addLog, setScreen]
+    [addLog, setScreen],
   );
 
-  const handleSendPrompt = useCallback(() => {
-    if (!inputValue.trim()) return;
+  const getFilteredCommands = useCallback(() => {
+    if (!inputValue.startsWith("/")) {
+      console.log(`[MainMenu] No command input`);
+      return [];
+    }
 
-    addLog(`[APP] Creating thread with prompt: "${inputValue}"`);
+    const searchTerm = inputValue.slice(1).toLowerCase().trim();
 
-    const threadId = `thread-${Date.now()}`;
-    const timestamp = new Date().toISOString();
+    const filtered = AVAILABLE_COMMANDS.filter((cmd) => {
+      const cmdName = cmd.name.slice(1);
+      return cmdName.startsWith(searchTerm) || searchTerm === "";
+    });
 
-    const newThread: Thread = {
-      id: threadId,
-      title: inputValue.substring(0, 50),
-      model: "gpt-5.2",
-      createdAt: timestamp,
-      messages: [
-        {
-          id: `msg-${Date.now()}`,
-          role: "user",
-          content: inputValue,
-          timestamp,
-        },
-      ],
-    };
+    console.log(
+      `[MainMenu] Filtered commands: input="${inputValue}", search="${searchTerm}", results=${filtered.length}`,
+    );
+    return filtered;
+  }, [inputValue]);
 
-    setCurrentThread(newThread);
-    setScreen("thread");
-    setInputValue("");
-  }, [inputValue, addLog, setCurrentThread, setScreen]);
+  const handleInputChange = useCallback(
+    (value: string) => {
+      console.log(`[MainMenu] Input changed: "${value}"`);
+      setInputValue(value);
+
+      if (value.startsWith("/")) {
+        console.log(`[MainMenu] Opening command menu`);
+        setIsCommandMenuOpen(true);
+        setSelectedCommandIndex(0);
+
+        // Auto-execute if only one command matches
+        const searchTerm = value.slice(1).toLowerCase().trim();
+        const filtered = AVAILABLE_COMMANDS.filter((cmd) => {
+          const cmdName = cmd.name.slice(1);
+          return cmdName.startsWith(searchTerm);
+        });
+
+        if (filtered.length === 1) {
+          console.log(
+            `[MainMenu] Auto-executing single match: /${filtered[0].key}`,
+          );
+          setTimeout(() => {
+            handleSelectCommand(filtered[0].key);
+          }, 100);
+        }
+      } else {
+        console.log(`[MainMenu] Closing command menu`);
+        setIsCommandMenuOpen(false);
+      }
+    },
+    [handleSelectCommand],
+  );
 
   useKeyboard((key) => {
-    if (key.name === "r") {
-      setScreen("run");
-    }
-    if (key.name === "h") {
-      setScreen("history");
-    }
-    if (key.name === "c") {
-      setScreen("compare");
-    }
-    if (key.name === "e") {
-      setScreen("explain");
+    if (isCommandMenuOpen) {
+      const filteredCommands = getFilteredCommands();
+
+      if (key.name === "up") {
+        setSelectedCommandIndex((prev) =>
+          prev > 0 ? prev - 1 : filteredCommands.length - 1,
+        );
+        return;
+      }
+      if (key.name === "down") {
+        setSelectedCommandIndex((prev) =>
+          prev < filteredCommands.length - 1 ? prev + 1 : 0,
+        );
+        return;
+      }
+      if (key.name === "return") {
+        const selectedCmd = filteredCommands[selectedCommandIndex];
+        if (selectedCmd) {
+          handleSelectCommand(selectedCmd.key);
+        }
+        return;
+      }
+      if (key.name === "escape") {
+        setIsCommandMenuOpen(false);
+        setInputValue("");
+        return;
+      }
     }
   });
-
-  console.log("[MainMenu] About to render, isModalOpen:", isModalOpen);
 
   return (
     <box
@@ -146,34 +161,16 @@ export default function MainMenu({
       }}
     >
       <box>
-        <text fg="#FFFF00">Dusk - AI CLI Aggregator</text>
+        <text fg="#FFFF00">Dusk.AI</text>
       </box>
 
       <box
         style={{
           flexDirection: "column",
           gap: 1,
-          flex: 1,
-          overflow: "auto",
           paddingBottom: 1,
         }}
-      >
-        <box>
-          <text fg="#888888">Quick Commands:</text>
-        </box>
-        <box>
-          <text fg="#AAAAAA">R - Run a new prompt</text>
-        </box>
-        <box>
-          <text fg="#AAAAAA">H - View history</text>
-        </box>
-        <box>
-          <text fg="#AAAAAA">C - Compare runs</text>
-        </box>
-        <box>
-          <text fg="#AAAAAA">E - Explain output</text>
-        </box>
-      </box>
+      ></box>
 
       <box
         title="New Conversation"
@@ -185,29 +182,81 @@ export default function MainMenu({
         }}
       >
         <input
-          placeholder="Enter your prompt or /help... (Enter to send)"
+          placeholder="Enter / for more commands"
           value={inputValue}
           onChange={(value: string) => {
-            console.log("[MainMenu] onChange triggered with value:", JSON.stringify(value));
             handleInputChange(value);
           }}
-          onFocus={() => setInputFocused(true)}
-          onBlur={() => setInputFocused(false)}
         />
       </box>
 
-      <box>
-        <text fg="#666666">
-          R: Run | H: History | C: Compare | E: Explain | Q: Quit
-        </text>
-      </box>
 
-      {console.log("[MainMenu] Rendering CommandModal with isOpen:", isModalOpen)}
-      <CommandModal
-        isOpen={isModalOpen}
-        onSelectCommand={handleSelectCommand}
-        onClose={() => setIsModalOpen(false)}
-      />
+      {isCommandMenuOpen && (
+        <box
+          style={{
+            position: "absolute",
+            top: 12,
+            left: 2,
+            width: 50,
+            border: true,
+            borderStyle: "double",
+            padding: 1,
+            flexDirection: "column",
+            gap: 0,
+            backgroundColor: "#1a1a1a",
+          }}
+        >
+          {getFilteredCommands().length > 0 ? (
+            <>
+              <box
+                style={{
+                  flexDirection: "column",
+                  gap: 1,
+                }}
+              >
+                {getFilteredCommands().map((cmd, index) => (
+                  <box
+                    key={cmd.key}
+                    style={{
+                      flexDirection: "column",
+                      gap: 0,
+                      paddingLeft: 1,
+                      backgroundColor:
+                        index === selectedCommandIndex
+                          ? "#333333"
+                          : "transparent",
+                    }}
+                  >
+                    <box>
+                      <text
+                        fg={
+                          index === selectedCommandIndex ? "#00FF00" : "#AAAAAA"
+                        }
+                      >
+                        {cmd.name}
+                      </text>
+                    </box>
+                    <box>
+                      <text fg="#666666">{cmd.description}</text>
+                    </box>
+                  </box>
+                ))}
+              </box>
+              <box style={{ marginTop: 1 }}>
+                <text fg="#666666">
+                  ↑↓: Select | Enter: Execute | Esc: Cancel
+                </text>
+              </box>
+            </>
+          ) : (
+            <box>
+              <text fg="#FF6666">
+                No commands matching "{inputValue.slice(1)}"
+              </text>
+            </box>
+          )}
+        </box>
+      )}
     </box>
   );
 }
